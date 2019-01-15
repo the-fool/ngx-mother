@@ -50,7 +50,9 @@ export interface PaginateResults<T> {
 const dictFromList = R.indexBy(R.prop('id'));
 
 // lenses
-const pageLens = (queryString: string, pageIndex: number) => R.lensPath(['pagination', queryString, 'pages', pageIndex]);
+const pageLens = (queryString: string, pageIndex: number) => R.lensPath(['pagination', queryString, 'pages', pageIndex]) as any; 
+const pageLifeEventLens = (lens: R.Lens) => R.compose(lens, R.lensProp('lifeEvent')) as R.Lens;
+
 const entitiesLens = R.lensProp('entities');
 const totalCountLens = R.lensProp('totalCount');
 
@@ -96,16 +98,29 @@ export function createEntityAdapter<T>() {
       totalCount,
     ) as PaginatedEntityTransform;
 
+    const entityIdsLens = R.compose(basePageLens, R.lensProp('entities')) as R.Lens;
+    const setPageEntityIds = R.set(
+      entityIdsLens,
+      entityIds
+    ) as PaginatedEntityTransform;
+
+    const setLifeEvent = R.set(
+      pageLifeEventLens(basePageLens),
+      new Success()
+    ) as PaginatedEntityTransform;
 
     const pipeline = R.pipe(
       setEntities,
-      setTotalCount
+      setTotalCount,
+      setPageEntityIds,
+      setLifeEvent
     );
 
     return pipeline(state);
   }
 
   return {
-    fetchPage
+    fetchPage,
+    fetchPageSuccess
   };
 }
